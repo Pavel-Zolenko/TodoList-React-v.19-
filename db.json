@@ -1,4 +1,13 @@
 {
   "tasks": [],
-  "users": []
+  "users": [
+    {
+      "id": "a74c31e0-0e43-41c0-bfcc-fdca1b372453",
+      "email": "pobedu8@gmail.com"
+    },
+    {
+      "id": "e2676683-50ad-4f0a-98a2-97e4f49ce9c6",
+      "email": "donf.r@rambler.ru"
+    }
+  ]
 }

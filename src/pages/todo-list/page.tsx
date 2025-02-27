@@ -1,11 +1,19 @@
-import { startTransition, useTransition, useState, Suspense, useMemo, use } from "react";
+import {
+  startTransition,
+  useTransition,
+  useState,
+  Suspense,
+  useMemo,
+  use,
+  useEffect,
+} from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Link, useParams } from "react-router-dom";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { BsPlusCircle } from "react-icons/bs";
 import { useDisclosure, Button } from "@heroui/react";
 
-import { fetchTasks, PaginatedResponse } from "../../shared/api";
+import { fetchTasks, PaginatedResponse, Task } from "../../shared/api";
 import { ModalCreateTaskForm } from "./ModalCreateTask";
 import { TaskList } from "./TaskList";
 import { Header } from "./Header";
@@ -19,8 +27,15 @@ export function TodoListPage() {
   const [paginatedTaskPromise, setTasksPromise] = useState(
     fetchTasks({ filters: { userId: userId, title: search } })
   );
+  const [filtredTask, setFiltredTask] = useState<Task[]>([]);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  useEffect(() => {
+    paginatedTaskPromise.then((r) => {
+      setFiltredTask(r.data);
+    });
+  }, [paginatedTaskPromise]);
 
   const refetchTasks = () =>
     startTransition(() =>
@@ -31,11 +46,6 @@ export function TodoListPage() {
     setPage(newPage);
     setTasksPromise(fetchTasks({ filters: { userId, title: search }, page: newPage }));
   };
-
-  const tasksPromise = useMemo(
-    () => paginatedTaskPromise.then((r) => r.data),
-    [paginatedTaskPromise]
-  );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function debounce<T extends (...args: any[]) => void>(callback: T, delay = 1000) {
@@ -54,17 +64,25 @@ export function TodoListPage() {
   const debouncedFetchTasks = useMemo(
     () =>
       debounce((query: string) => {
-        startTransition(() =>
-          setTasksPromise(
+        startTransition(() => {
+          if (query.trim() === "") {
             fetchTasks({
               filters: { userId, title: query },
               page,
               sort: { createdAt: createdAtSort },
-            })
-          )
-        );
+            }).then((r) => {
+              setFiltredTask(r.data);
+            });
+          } else {
+            setFiltredTask(
+              filtredTask.filter((task) =>
+                task.title.toLowerCase().includes(query.toLowerCase())
+              )
+            );
+          }
+        });
       }),
-    [userId, page, createdAtSort]
+    [userId, page, createdAtSort, filtredTask]
   );
 
   const handleChangeSort = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -144,7 +162,7 @@ export function TodoListPage() {
             )}
           >
             <Suspense fallback={"loading..."}>
-              <TaskList tasksPromise={tasksPromise} refetchTasks={refetchTasks} />
+              <TaskList refetchTasks={refetchTasks} tasks={filtredTask} />
               <Pagination
                 page={page}
                 taskPaginated={paginatedTaskPromise}
@@ -155,66 +173,6 @@ export function TodoListPage() {
         </div>
       </div>
     </div>
-    // <>
-    //   <Header userId={userId} />
-
-    //   <Link
-    //     to={`/`}
-    //     className="flex gap-2 items-center w-16 hover:text-slate-600 hover:dark:text-slate-400"
-    //   >
-    //     <IoMdArrowRoundBack className="group-hover:text-blue-500 dark:group-hover:text-zinc-900" />
-    //     <p>back</p>
-    //   </Link>
-
-    //   <Button
-    //     onPress={onOpen}
-    //     startContent={<BsPlusCircle size={24} />}
-    //     variant="ghost"
-    //     className="max-w-fit self-center"
-    //   >
-    //     Create task
-    //   </Button>
-
-    //   <ModalCreateTaskForm
-    //     isOpen={isOpen}
-    //     onOpenChange={onOpenChange}
-    //     refetchTasks={refetchTasks}
-    //     userId={userId}
-    //   />
-
-    // <div className="flex gap-2">
-    //   <input
-    //     placeholder="Search"
-    //     type="text"
-    //     value={search}
-    //     onChange={handleChangeSearch}
-    //     className="border border-b-2 border-slate-400 p-2 rounded bg-slate-200 dark:bg-zinc-800 focus:bg-slate-300 hover:bg-slate-300 focus:dark:bg-zinc-700 hover:dark:bg-zinc-700"
-    //   />
-    //   <select
-    //     className="border border-b-2 border-slate-400 p-2 rounded bg-slate-200 dark:bg-zinc-800 focus:bg-slate-300 hover:bg-slate-300 focus:dark:bg-zinc-700 hover:dark:bg-zinc-700"
-    //     onChange={handleChangeSort}
-    //     value={createdAtSort}
-    //   >
-    //     <option value="asc">Asc</option>
-    //     <option value="desc">Desс</option>
-    //   </select>
-    // </div>
-
-    // <ErrorBoundary
-    //   fallbackRender={(e) => (
-    //     <div className="text-red-500">Что-то пошло не так: {JSON.stringify(e)} </div>
-    //   )}
-    // >
-    //   <Suspense fallback={"loading..."}>
-    //     <TaskList tasksPromise={tasksPromise} refetchTasks={refetchTasks} />
-    //     <Pagination
-    //       page={page}
-    //       taskPaginated={paginatedTaskPromise}
-    //       onPageChange={onPageChange}
-    //     />
-    //   </Suspense>
-    // </ErrorBoundary>
-    // </>
   );
 }
 

@@ -1,17 +1,14 @@
-import { use } from "react";
 import { AnimatePresence } from "framer-motion";
 import { TaskCard } from "./TaskCard";
 import { Task } from "../../shared/api";
 
 export function TaskList({
-  tasksPromise,
   refetchTasks,
+  tasks,
 }: {
-  tasksPromise: Promise<Task[]>;
   refetchTasks: () => void;
+  tasks: Task[];
 }) {
-  const tasks = use(tasksPromise);
-
   return (
     <div className="flex flex-col gap-2">
       {tasks.length === 0 ? (
